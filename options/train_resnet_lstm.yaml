@@ -1,0 +1,37 @@
+  task : classification
+  gpu_ids : [0]
+  n_channels : 3
+
+  datasets:
+    train:
+      name: train_dataset
+      dataroot: sample/sample_data
+      dataloader_shuffle: true
+      dataloader_num_worker: 8
+      dataloader_batch_size: 16
+    test:
+      name: test_dataset
+      dataroot: sample/sample_data
+
+  path:
+    root: crop_classification
+    pretrained_net: null
+
+  net:
+    net_type: resnet_lstm
+    max_len : 144         #24*6
+    embedding_dim : 512
+    num_features : 499    # len(csv_feature_dict)
+    class_n : 32          # len(label)
+    dropout_rate : 0.1
+
+  train:
+    lossfn_type: CrossEntropy # "CrossEntropy"
+    G_lossfn_weight: 1
+
+    optimizer_type: adam
+    optimizer_lr: !!float 1e-4
+
+    checkpoint_test: 10000
+    checkpoint_save: 10000
+    checkpoint_print: 1000

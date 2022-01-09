@@ -1,0 +1,1 @@
+{"description": {"date": "20210916", "image": "10150.jpg", "task": 0, "width": 384, "time": "1011", "region": 0, "height": 512}, "annotations": {"area": 3, "disease": "00", "grow": 11, "bbox": [{"x": 133.39629836309524, "h": 201.38885788690476, "y": 178.84809027777777, "w": 126.74565972222223}], "part": [], "risk": 0, "crop": 3}}
