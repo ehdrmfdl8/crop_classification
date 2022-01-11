@@ -7,8 +7,8 @@
       name: train_dataset
       dataroot: sample/sample_data
       dataloader_shuffle: true
-      dataloader_num_workers: 8
-      dataloader_batch_size: 16
+      dataloader_num_workers: 2
+      dataloader_batch_size: 2
     test:
       name: test_dataset
       dataroot: sample/sample_data
@@ -25,9 +25,9 @@
     class_n : 32          # len(label)
     dropout_rate : 0.1
 
-    init_type: trunc_normal # "orthogonal" | "normal" | "uniform" | "xavier_normal" | "xavier_uniform" | "kaiming_normal" | "kaiming_uniform"
-    init_bn_type: constant # "uniform" | "constant"
-    init_gain: 0.2
+#    init_type: trunc_normal # "orthogonal" | "normal" | "uniform" | "xavier_normal" | "xavier_uniform" | "kaiming_normal" | "kaiming_uniform"
+#    init_bn_type: constant # "uniform" | "constant"
+#    init_gain: 0.2
 
   train:
     lossfn_type: CrossEntropy # "CrossEntropy"

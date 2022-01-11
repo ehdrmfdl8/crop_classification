@@ -20,23 +20,46 @@ def main(option_path='options/train_resnet_lstm.yaml'):
     '''
     parser = argparse.ArgumentParser()
     parser.add_argument('--opt', type=str, default=option_path, help='Path to option JSON file.')
-    parser.add_argument('--amp', default=True)
+    parser.add_argument('--amp', default=False)
     parser.add_argument('--resume', default=True)
     opt = option.parse(parser.parse_args().opt, is_train=True)
     opt['amp'] = parser.parse_args().amp
+    opt['resume'] = parser.parse_args().resume
 
     scaler = torch.cuda.amp.GradScaler()
+
+
+
+    utils_image.mkdirs((path for key, path in opt['path'].items() if 'pretrained' not in key))
+
+    # ----------------------------------------
+    # update opt
+    # ----------------------------------------
+    # -->-->-->-->-->-->-->-->-->-->-->-->-->-
+    if opt['resume'] == True:
+        init_iter, init_path = option.find_last_checkpoint(opt['path']['models'], net_type='net')
+        init_iter_optimizer, init_path_optimizer = option.find_last_checkpoint(opt['path']['models'],
+                                                                                 net_type='optimizer')
+    else:
+        init_iter = 0
+        init_path = opt['path']['pretrained_netG']
+        init_iter_optimizer = 0
+        init_path_optimizer = None
+
+    opt['path']['pretrained_net'] = init_path
+    opt['path']['pretrained_optimizer'] = init_path_optimizer
+    current_step = max(init_iter, init_iter_optimizer)
+
+    option.save(opt)
 
     # ----------------------------------------
     # configure logger
     # ----------------------------------------
-
-    utils_image.mkdirs((path for key, path in opt['path'].items() if 'pretrained' not in key))
-
     logger_name = 'train'
     #utils_logger.logger_info(logger_name, os.path.join(opt['path']['log'], logger_name + '.log'))
     logger = logging.getLogger(logger_name)
     logger.info(option.dict2str(opt))
+
 
     '''
     # ----------------------------------------
@@ -75,7 +98,7 @@ def main(option_path='options/train_resnet_lstm.yaml'):
     # Step--4 (main training)
     # ----------------------------------------
     '''
-    current_step = 0
+
     loss_plot, val_loss_plot = [], []
     metric_plot, val_metric_plot = [], []
 

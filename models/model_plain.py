@@ -25,6 +25,7 @@ class ModelPlain():
         self.net.train()                      # set training mode
         self.define_loss()                    # define_loss
         self.define_optimizer()               # define optimizer
+        self.load_optimizers()                # load optimizer
         self.define_scheduler()               # define scheduler
         self.log_dict = OrderedDict()         # log
 
@@ -59,11 +60,17 @@ class ModelPlain():
         del optim_params
 
 
-    # def load_optimizer(self):
-    #     load_path_optimizer = self.opt['path']['pretrained_optimizer']
-    #     if load_path_optimizer is not None and self.opt_train['optimizer_reuse']:
-    #         print('Loading optimizer [{:s}] ...'.format(load_path_optimizer))
-    #         self.load_optimizer(load_path_optimizer, self.optimizer)
+    def load_optimizers(self):
+        load_path_optimizer = self.opt['path']['pretrained_optimizer']
+        if load_path_optimizer is not None and self.opt_train['optimizer_reuse']:
+            print('Loading optimizer [{:s}] ...'.format(load_path_optimizer))
+            self.load_optimizer(load_path_optimizer, self.optimizer)
+
+    # ----------------------------------------
+    # load the state_dict of the optimizer
+    # ----------------------------------------
+    def load_optimizer(self, load_path, optimizer):
+        optimizer.load_state_dict(torch.load(load_path, map_location=lambda storage, loc: storage.cuda(torch.cuda.current_device())))
 
     # ----------------------------------------
     # define scheduler, only "MultiStepLR"
