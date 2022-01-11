@@ -17,7 +17,7 @@ class RNN_Decoder(nn.Module):
     def __init__(self, max_len, embedding_dim, num_features, class_n, rate):
         super(RNN_Decoder, self).__init__()
         self.lstm = nn.LSTM(max_len, embedding_dim)
-        self.rnn_fc = nn.Linear(num_features*embedding_dim, 1000)
+        self.rnn_fc = nn.Linear(num_features * embedding_dim, 1000)
         self.final_layer = nn.Linear(1000 + 1000, class_n)
         self.dropout = nn.Dropout(rate)
 
@@ -43,15 +43,16 @@ class CNN2RNN(nn.Module):
         return output
 
 if __name__ == '__main__':
-    max_len = 10
-    embedding_dim = 60
-    num_features = 60
-    class_n = 6
+    max_len = 144
+    embedding_dim = 512
+    num_features = 9
+    class_n = 32
     dropout_rate = 0.1
     model = CNN2RNN(max_len=max_len, embedding_dim=embedding_dim, num_features=num_features,
                 class_n=class_n, rate=dropout_rate)
     print(model)
 
-    # x = torch.randn((1, 3, 50, 52))
-    # x = models(x)
-    # print(x.shape)
+    img = torch.randn((1, 3, 256, 256))
+    seq = torch.randn((1, 9, 144))
+    x = model(img, seq)
+    print(x.shape)

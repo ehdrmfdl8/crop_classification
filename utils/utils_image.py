@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import cv2
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP', '.tif']
 
@@ -42,6 +43,9 @@ def _get_paths_from_images(path):
     assert images, '{:s} has no valid image file'.format(path)
     return images
 
+
+def get_timestamp():
+    return datetime.now().strftime('%y%m%d-%H%M%S')
 
 
 '''
@@ -162,13 +166,43 @@ def single32tensor5(img):
 
 def single42tensor4(img):
     return torch.from_numpy(np.ascontiguousarray(img)).permute(2, 0, 1, 3).float()
+
+
+
+'''
+# --------------------------------------------
+# makedir
+# --------------------------------------------
+'''
+
+
+def mkdir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def mkdirs(paths):
+    if isinstance(paths, str):
+        mkdir(paths)
+    else:
+        for path in paths:
+            mkdir(path)
+
+
+def mkdir_and_rename(path):
+    if os.path.exists(path):
+        new_name = path + '_archived_' + get_timestamp()
+        print('Path already exists. Rename it to [{:s}]'.format(new_name))
+        os.rename(path, new_name)
+    os.makedirs(path)
+
+
+
 '''
 # --------------------------------------------
 # matlab's bicubic imresize (numpy and torch) [0, 1]
 # --------------------------------------------
 '''
-
-
 # matlab 'imresize' function, now only support 'bicubic'
 def cubic(x):
     absx = torch.abs(x)

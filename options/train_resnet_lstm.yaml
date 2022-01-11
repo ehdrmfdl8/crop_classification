@@ -7,7 +7,7 @@
       name: train_dataset
       dataroot: sample/sample_data
       dataloader_shuffle: true
-      dataloader_num_worker: 8
+      dataloader_num_workers: 8
       dataloader_batch_size: 16
     test:
       name: test_dataset
@@ -19,19 +19,27 @@
 
   net:
     net_type: resnet_lstm
-    max_len : 144         #24*6
+    max_len : 144         #24*6  24hour * (10 per minutes = 6)
     embedding_dim : 512
-    num_features : 499    # len(csv_feature_dict)
+    num_features : 9    # len(csv_feature_dict)
     class_n : 32          # len(label)
     dropout_rate : 0.1
 
+    init_type: trunc_normal # "orthogonal" | "normal" | "uniform" | "xavier_normal" | "xavier_uniform" | "kaiming_normal" | "kaiming_uniform"
+    init_bn_type: constant # "uniform" | "constant"
+    init_gain: 0.2
+
   train:
     lossfn_type: CrossEntropy # "CrossEntropy"
-    G_lossfn_weight: 1
+    lossfn_weight: 1
+
+    scheduler_type: MultiStepLR # "MultiStepLR" | "CyclicLR"
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
 
     optimizer_type: adam
     optimizer_lr: !!float 1e-4
 
-    checkpoint_test: 10000
-    checkpoint_save: 10000
-    checkpoint_print: 1000
+    checkpoint_test: 10
+    checkpoint_save: 10
+    checkpoint_print: 1

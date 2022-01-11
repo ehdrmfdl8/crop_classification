@@ -35,5 +35,4 @@ def parse(path):
             line = line.split('//')[0] + '\n'
             json_str += line
     opt = json.loads(json_str, object_pairs_hook=OrderedDict)
-    print(opt)
     return opt

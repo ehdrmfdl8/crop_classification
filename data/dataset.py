@@ -48,20 +48,21 @@ label_description = {
  '6_b5_3': '축과병_말기',
 }
 
-label_encoder = {key:idx for idx, key in enumerate(label_description)}
-label_decoder = {val:key for key, val in label_encoder.items()}
+label_encoder = {key:idx for idx, key in enumerate(label_description)} # index를 추출
+label_decoder = {val:key for key, val in label_encoder.items()} # word를 추출
 
 def CSV_MinMax_Scaling(paths):
 
     csv_features = ['내부 온도 1 평균', '내부 온도 1 최고', '내부 온도 1 최저', '내부 습도 1 평균', '내부 습도 1 최고',
             '내부 습도 1 최저', '내부 이슬점 평균', '내부 이슬점 최고', '내부 이슬점 최저']
     csv_files = paths
-    temp_csv = pd.read_csv(csv_files[0])[csv_features]
+    temp_csv = pd.read_csv(csv_files[0], encoding='utf-8')[csv_features]
+
     max_arr,min_arr = temp_csv.max().to_numpy(), temp_csv.min().to_numpy()
 
     # feature 별 최대값, 최솟값 계산
-    for csv in tqdm(csv_files[1:]):
-        temp_csv = pd.read_csv(csv)[csv_features]
+    for csv in csv_files[1:]:
+        temp_csv = pd.read_csv(csv, encoding='utf-8')[csv_features]
         temp_max, temp_min = temp_csv.max().to_numpy(), temp_csv.min().to_numpy()
         max_arr = np.max([max_arr,temp_max], axis=0)
         min_arr = np.min([min_arr,temp_min], axis=0)
@@ -76,7 +77,7 @@ class Dataset(data.Dataset):
     def __init__(self, opt):
         super(Dataset, self).__init__()
         print('Get crop image.')
-        self.is_train = opt['is_train']
+        self.opt = opt
         self.n_channels = opt['n_channels'] if opt['n_channels'] else 3
         ## Data Augmentation 필요시 적용 (추가예정)
 
@@ -118,7 +119,7 @@ class Dataset(data.Dataset):
         img = cv2.resize(img, dsize=(256, 256), interpolation=cv2.INTER_AREA)
         img = util_image.uint2tensor3(img)
 
-        if self.is_train:
+        if self.opt['phase'] == 'train':
             json_file = util_json.parse(self.json_paths[index])
             crop = json_file['annotations']['crop']
             disease = json_file['annotations']['disease']
@@ -140,7 +141,7 @@ class Dataset(data.Dataset):
         return len(self.img_paths)
 
 if __name__ == '__main__':
-    root = 'E:/python/crop_classification/sample/sample_data'
+    root = 'E:/python/dacon/crop_classification/sample/sample_data'
     dataset = Dataset(root)
     sample_csv = pd.read_csv(dataset.csv_paths[3])
     sample_image = util_image.imread_uint(dataset.img_paths[3])

@@ -19,7 +19,7 @@ def define_network(opt):
             embedding_dim=opt_net['embedding_dim'],
             num_features=opt_net['num_features'],
             class_n=opt_net['class_n'],
-            rate=opt_net['rate']
+            rate=opt_net['dropout_rate']
         )
 
     else:
