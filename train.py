@@ -2,6 +2,7 @@ import argparse
 import math
 import os
 from collections import OrderedDict
+import warnings
 
 import torch
 from data.dataset import Dataset
@@ -11,6 +12,7 @@ from utils import utils_image
 from torch.utils.data import DataLoader
 from models.model_plain import ModelPlain
 import logging
+warnings.filterwarnings(action='ignore')
 
 def main(option_path='options/train_resnet_lstm.yaml'):
     '''
@@ -20,7 +22,7 @@ def main(option_path='options/train_resnet_lstm.yaml'):
     '''
     parser = argparse.ArgumentParser()
     parser.add_argument('--opt', type=str, default=option_path, help='Path to option JSON file.')
-    parser.add_argument('--amp', default=False)
+    parser.add_argument('--amp', default=True)
     parser.add_argument('--resume', default=True)
     opt = option.parse(parser.parse_args().opt, is_train=True)
     opt['amp'] = parser.parse_args().amp
@@ -56,7 +58,7 @@ def main(option_path='options/train_resnet_lstm.yaml'):
     # configure logger
     # ----------------------------------------
     logger_name = 'train'
-    #utils_logger.logger_info(logger_name, os.path.join(opt['path']['log'], logger_name + '.log'))
+    utils_logger.logger_info(logger_name, os.path.join(opt['path']['log'], logger_name + '.log'))
     logger = logging.getLogger(logger_name)
     logger.info(option.dict2str(opt))
 
