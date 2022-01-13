@@ -100,11 +100,12 @@ def main(option_path='options/train_resnet_lstm.yaml'):
     # Step--4 (main training)
     # ----------------------------------------
     '''
-
-    loss_plot, val_loss_plot = [], []
-    metric_plot, val_metric_plot = [], []
-
-    for epoch in range(1000000):  # keep running
+    best = 0
+    for epoch in range(1000):  # keep running
+        total_loss, total_val_loss = 0, 0
+        total_acc, total_val_acc = 0, 0
+        train_pred = []
+        train_label = []
         for i, train_data in enumerate(train_loader):
             current_step += 1
             # -------------------------------
@@ -120,50 +121,46 @@ def main(option_path='options/train_resnet_lstm.yaml'):
             # -------------------------------
             # 3) optimize parameters
             # -------------------------------
-            model.optimize_parameters()
+            model.optimize_parameters() # forward & backward
 
             # -------------------------------
             # 4) training information
             # -------------------------------
-            if current_step % opt['train']['checkpoint_print'] == 0:
-                logs = model.current_log()  # such as loss
-                message = '<epoch:{:3d}, iter:{:8,d}, lr:{:.3e}> '.format(epoch, current_step,
-                                                                          model.current_learning_rate())
-                for k, v in logs.items():  # merge log information into message
-                    message += '{:s}: {:.3e} '.format(k, v)
-                logger.info(message)
 
-            # -------------------------------
-            # 5) testing
-            # -------------------------------
-            if current_step % opt['train']['checkpoint_test'] == 0:
+            logs = model.current_log()  # such as loss, score
 
-                idx = 0
-                for test_data in test_loader:
-                    idx += 1
-                    model.is_train = False
-                    model.feed_data(test_data)
-                    model.test()
+            total_loss += logs['loss'] / len(train_loader)
+            train_pred += model.out.argmax(1).detach().cpu().numpy().tolist()
+            train_label += model.label.detach().cpu().numpy().tolist()
 
-                    # -----------------------
-                    # calculate F1_score
-                    # -----------------------
-                    logs = model.current_log()
-                    val_loss = logs['loss']
-                    f1_score = logs['score']
+        train_f1 = model.accuracy_function(train_label, train_pred)
 
-                    logger.info('{:->4d}--> {:>4.2f} | {:<4.2f}'.format(idx, val_loss, f1_score))
+        val_pred = []
+        val_label = []
+        # -------------------------------
+        # 5) testing
+        # -------------------------------
+        if epoch % opt['train']['checkpoint_test'] == 0:
+            for test_data in test_loader:
 
-                val_loss_plot.append(val_loss)
-                val_metric_plot.append(f1_score)
-                model.is_train = True
+                model.is_train = False
+                model.feed_data(test_data, need_label=True)
+                model.test()
+                val_pred += model.out.argmax(1).detach().cpu().numpy().tolist()
+                val_label += model.label.detach().cpu().numpy().tolist()
+            val_f1 = model.accuracy_function(val_label, val_pred)
+            model.is_train = True
 
-            # -------------------------------
-            # 6) save model
-            # -------------------------------
-            if current_step % opt['train']['checkpoint_save'] == 0:
-                logger.info('Saving the model.')
-                model.save(current_step)
+        # -------------------------------
+        # 6) save model
+        # -------------------------------
+        if val_f1 >= best:
+            logger.info('Saving the model.')
+            best = val_f1
+            model.save(epoch)
+
+        message = f'epoch: {epoch+1}/{1000} train loss : {total_loss:.5f}  f1:{train_f1:.5f}  valid f1:{val_f1:.5f}  best f1:{best:.5f}'
+        logger.info(message)
 
 if __name__ == '__main__':
     main()
