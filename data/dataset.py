@@ -68,8 +68,8 @@ def define_Label(crop, disease, risk):
                 label = f'{key}_{disease_code}_{risk_code}' # key 값 정의 (코드)
                 label_description[label] = f'{crop[key]}_{disease[key][disease_code]}_{risk[risk_code]}' # value 값 정의 (명칭)
     label_encoder = {key: idx for idx, key in enumerate(label_description)}  # index를 추출
-    label_decoder = {val: key for key, val in label_encoder.items()}  # word를 추출
-    return label_encoder, label_decoder
+    # label_decoder = {val: key for key, val in label_encoder.items()}  # word를 추출
+    return label_encoder
 
 
 
@@ -108,28 +108,29 @@ class Dataset(data.Dataset):
         self.n_channels = opt['n_channels'] if opt['n_channels'] else 3
         ## Data Augmentation 필요시 적용 (추가예정)
 
-        self.img_paths = util_image.get_image_paths(opt['dataroot'])
-        self.csv_paths = util_csv.get_csv_paths(opt['dataroot'])
-        self.json_paths = util_json.get_json_paths(opt['dataroot'])
-        assert self.img_paths, 'Error : img_path is empty'
-        assert self.csv_paths, 'Error : csv_path is empty'
-        assert self.json_paths, 'Error : json_path is empty'
-        self.csv_feature_dict = CSV_MinMax_Scaling(self.csv_paths)
-        self.csv_feature_check = [0]*len(self.csv_paths)
-        self.csv_features = [None]*len(self.csv_paths)
+        self.paths = util_image.get_data_paths(opt['dataroot'])
+        #csv_paths = util_csv.get_csv_paths(opt['dataroot'])
+        csv_paths = [path+'/'+path.split('/')[-1]+'.csv' for path in self.paths]
+
+        assert self.paths, 'Error : img_path is empty'
+        self.csv_feature_dict = CSV_MinMax_Scaling(csv_paths)
+        self.csv_feature_check = [0]*len(csv_paths)
+        self.csv_features = [None]*len(csv_paths)
         self.max_len = 24 * 6
-        self.label_encoder, self.label_decoder = define_Label(crop, disease, risk)
+        self.label_encoder = define_Label(crop, disease, risk)
 
     def __getitem__(self, index):
 
+
+        path = self.paths[index]
+        file_name = path.split('/')[-1]
+
         # ------------------------------------
-        # get image
+        # get csv
         # ------------------------------------
-        path = self.img_paths[index]
-        # file_name = path.split('/')[-1]
         if self.csv_feature_check[index] == 0:
-            #df = pd.read_csv(self.csv_paths[index])
-            df = pd.read_csv(self.csv_paths[index])[self.csv_feature_dict.keys()]
+            csv_path = f'{path}/{file_name}.csv'
+            df = pd.read_csv(csv_path)[self.csv_feature_dict.keys()]
             df = df.replace('-', 0)
             # MinMax scaling 정규화
             for col in df.columns:
@@ -146,12 +147,18 @@ class Dataset(data.Dataset):
         else:
             csv_feature = self.csv_features[index]
 
-        img = util_image.imread_uint(path, self.n_channels)
+        # ------------------------------------
+        # get image
+        # ------------------------------------
+        img_path = f'{path}/{file_name}.jpg'
+        img = util_image.imread_uint(img_path, self.n_channels)
         img = cv2.resize(img, dsize=(256, 256), interpolation=cv2.INTER_AREA)
         img = util_image.uint2tensor3(img)
 
         if self.opt['phase'] == 'train':
-            json_file = util_json.parse(self.json_paths[index])
+            json_path = f'{path}/{file_name}.json'
+            json_file = util_json.parse(json_path)
+
             crop = json_file['annotations']['crop']
             disease = json_file['annotations']['disease']
             risk = json_file['annotations']['risk']
@@ -169,36 +176,36 @@ class Dataset(data.Dataset):
             }
 
     def __len__(self):
-        return len(self.img_paths)
+        return len(self.paths)
 
-if __name__ == '__main__':
-    root = 'E:/python/dacon/crop_classification/sample/sample_data'
-    dataset = Dataset(root)
-    sample_csv = pd.read_csv(dataset.csv_paths[3])
-    sample_image = util_image.imread_uint(dataset.img_paths[3])
-    sample_json = util_json.parse(dataset.json_paths[3])
-    util_image.imshow(sample_image)
-    print("ok")
-    # visualize bbox
-    plt.figure(figsize=(7,7))
-    points = sample_json['annotations']['bbox'][0]
-    part_points = sample_json['annotations']['part']
-
-    cv2.rectangle(
-        sample_image,
-        (int(points['x']), int(points['y'])), # left upper coord
-        (int((points['x']+points['w'])), int((points['y']+points['h']))), # right bottom coord
-        (0, 255, 0), # Green color
-        2 # thick of line
-    )
-    for part_point in part_points:
-        point = part_point
-        cv2.rectangle(
-            sample_image,
-            (int(point['x']), int(point['y'])),
-            (int((point['x'] + point['w'])), int((point['y'] + point['h']))),
-            (255, 0, 0),  # Red color
-            1 # thick of line
-        )
-    plt.imshow(sample_image)
-    plt.show()
+# if __name__ == '__main__':
+#     root = 'E:/python/dacon/crop_classification/sample/sample_data'
+#     dataset = Dataset(root)
+#     sample_csv = pd.read_csv(dataset.csv_paths[3])
+#     sample_image = util_image.imread_uint(dataset.img_paths[3])
+#     sample_json = util_json.parse(dataset.json_paths[3])
+#     util_image.imshow(sample_image)
+#     print("ok")
+#     # visualize bbox
+#     plt.figure(figsize=(7,7))
+#     points = sample_json['annotations']['bbox'][0]
+#     part_points = sample_json['annotations']['part']
+#
+#     cv2.rectangle(
+#         sample_image,
+#         (int(points['x']), int(points['y'])), # left upper coord
+#         (int((points['x']+points['w'])), int((points['y']+points['h']))), # right bottom coord
+#         (0, 255, 0), # Green color
+#         2 # thick of line
+#     )
+#     for part_point in part_points:
+#         point = part_point
+#         cv2.rectangle(
+#             sample_image,
+#             (int(point['x']), int(point['y'])),
+#             (int((point['x'] + point['w'])), int((point['y'] + point['h']))),
+#             (255, 0, 0),  # Red color
+#             1 # thick of line
+#         )
+#     plt.imshow(sample_image)
+#     plt.show()

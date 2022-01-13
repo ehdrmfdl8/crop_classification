@@ -6,7 +6,7 @@ import torch
 import cv2
 import matplotlib.pyplot as plt
 from datetime import datetime
-
+from glob import glob
 IMG_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP', '.tif']
 
 # x가 numpy인 경우 사용 가능함
@@ -19,10 +19,19 @@ def imshow(x, title=None, cbar=False, figsize=None):
         plt.colorbar()
     plt.show()
 
+def get_data_paths(dataroot):
+    paths = None
+    if dataroot is not None:
+        paths = sorted(glob(dataroot+'/*'))
+        paths = [path.replace('\\','/') for path in paths]
+    return paths
+
+
 '''
 # read image from path
 # opencv is fast, but read BGR numpy image
 '''
+
 def get_image_paths(dataroot):
     paths = None # return None if dataroot is None
     if dataroot is not None:
