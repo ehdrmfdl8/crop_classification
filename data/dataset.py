@@ -11,42 +11,7 @@ import utils.utils_json as util_json
 import matplotlib.pyplot as plt
 import cv2
 import tqdm
-
-# 제공된 sample data는 파프리카와 시설포도 2종류의 작물만 존재
-sample_label_description = {
- '3_00_0': '파프리카_정상',
- '3_a9_1': '파프리카흰가루병_초기',
- '3_a9_2': '파프리카흰가루병_중기',
- '3_a9_3': '파프리카흰가루병_말기',
- '3_a10_1': '파프리카잘록병_초기',
- '3_a10_2': '파프리카잘록병_중기',
- '3_a10_3': '파프리카잘록병_말기',
- '3_b3_1': '칼슘결핍_초기',
- '3_b3_2': '칼슘결핍_중기',
- '3_b3_3': '칼슘결핍_말기',
- '3_b6_1': '다량원소결핍 (N)_초기',
- '3_b6_2': '다량원소결핍 (N)_중기',
- '3_b6_3': '다량원소결핍 (N)_말기',
- '3_b7_1': '다량원소결핍 (P)_초기',
- '3_b7_2': '다량원소결핍 (P)_중기',
- '3_b7_3': '다량원소결핍 (P)_말기',
- '3_b8_1': '다량원소결핍 (K)_초기',
- '3_b8_2': '다량원소결핍 (K)_중기',
- '3_b8_3': '다량원소결핍 (K)_말기',
- '6_00_0': '시설포도_정상',
- '6_a11_1': '시설포도탄저병_초기',
- '6_a11_2': '시설포도탄저병_중기',
- '6_a11_3': '시설포도탄저병_말기',
- '6_a12_1': '시설포도노균병_초기',
- '6_a12_2': '시설포도노균병_중기',
- '6_a12_3': '시설포도노균병_말기',
- '6_b4_1': '일소피해_초기',
- '6_b4_2': '일소피해_중기',
- '6_b4_3': '일소피해_말기',
- '6_b5_1': '축과병_초기',
- '6_b5_2': '축과병_중기',
- '6_b5_3': '축과병_말기',
-}
+from sklearn.model_selection import KFold
 
 crop = {'1':'딸기','2':'토마토','3':'파프리카','4':'오이','5':'고추','6':'시설포도'}
 disease = {'1':{'a1':'딸기잿빛곰팡이병','a2':'딸기흰가루병','b1':'냉해피해','b6':'다량원소결핍 (N)','b7':'다량원소결핍 (P)','b8':'다량원소결핍 (K)'},
@@ -68,8 +33,8 @@ def define_Label(crop, disease, risk):
                 label = f'{key}_{disease_code}_{risk_code}' # key 값 정의 (코드)
                 label_description[label] = f'{crop[key]}_{disease[key][disease_code]}_{risk[risk_code]}' # value 값 정의 (명칭)
     label_encoder = {key: idx for idx, key in enumerate(label_description)}  # index를 추출
-    # label_decoder = {val: key for key, val in label_encoder.items()}  # word를 추출
-    return label_encoder
+    label_decoder = {val: key for key, val in label_encoder.items()}  # word를 추출
+    return label_encoder, label_decoder
 
 
 
@@ -109,7 +74,6 @@ class Dataset(data.Dataset):
         ## Data Augmentation 필요시 적용 (추가예정)
 
         self.paths = util_image.get_data_paths(opt['dataroot'])
-        #csv_paths = util_csv.get_csv_paths(opt['dataroot'])
         csv_paths = [path+'/'+path.split('/')[-1]+'.csv' for path in self.paths]
 
         assert self.paths, 'Error : img_path is empty'
@@ -117,7 +81,7 @@ class Dataset(data.Dataset):
         self.csv_feature_check = [0]*len(csv_paths)
         self.csv_features = [None]*len(csv_paths)
         self.max_len = 24 * 6
-        self.label_encoder = define_Label(crop, disease, risk)
+        self.label_encoder, self.label_decoder = define_Label(crop, disease, risk)
 
     def __getitem__(self, index):
 
@@ -155,7 +119,10 @@ class Dataset(data.Dataset):
         img = cv2.resize(img, dsize=(256, 256), interpolation=cv2.INTER_AREA)
         img = util_image.uint2tensor3(img)
 
-        if self.opt['phase'] == 'train':
+        # ------------------------------------
+        # get label
+        # ------------------------------------
+        if self.opt['phase'] == 'train' or self.opt['phase'] == 'val':
             json_path = f'{path}/{file_name}.json'
             json_file = util_json.parse(json_path)
 

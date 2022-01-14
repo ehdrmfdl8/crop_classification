@@ -11,6 +11,7 @@ from utils import utils_option as option
 from utils import utils_image
 from torch.utils.data import DataLoader
 from models.model_plain import ModelPlain
+
 import logging
 warnings.filterwarnings(action='ignore')
 
@@ -70,10 +71,10 @@ def main(option_path='options/train_resnet_lstm.yaml'):
     '''
     # 1) create dataset
     # 2) create dataloader for train and test
+
     for phase, dataset_opt in opt['datasets'].items():
         if phase == 'train':
             train_set = Dataset(dataset_opt)
-            train_size = int(math.ceil(len(train_set) / dataset_opt['dataloader_batch_size']))
             train_loader = DataLoader(train_set,
                                           batch_size=dataset_opt['dataloader_batch_size'],
                                           shuffle=dataset_opt['dataloader_shuffle'],
@@ -81,10 +82,10 @@ def main(option_path='options/train_resnet_lstm.yaml'):
                                           drop_last=True,
                                           pin_memory=True)
 
-        elif phase == 'test':
+        elif phase == 'val':
             test_set = Dataset(dataset_opt)
-            test_loader = DataLoader(test_set, batch_size=1,
-                                     shuffle=False, num_workers=1,
+            test_loader = DataLoader(test_set, batch_size=8,
+                                     shuffle=False, num_workers=8,
                                      drop_last=False, pin_memory=True)
     '''
     # ----------------------------------------
@@ -103,7 +104,6 @@ def main(option_path='options/train_resnet_lstm.yaml'):
     best = 0
     for epoch in range(1000):  # keep running
         total_loss, total_val_loss = 0, 0
-        total_acc, total_val_acc = 0, 0
         train_pred = []
         train_label = []
         for i, train_data in enumerate(train_loader):
@@ -140,16 +140,16 @@ def main(option_path='options/train_resnet_lstm.yaml'):
         # -------------------------------
         # 5) testing
         # -------------------------------
-        if epoch % opt['train']['checkpoint_test'] == 0:
-            for test_data in test_loader:
 
-                model.is_train = False
-                model.feed_data(test_data, need_label=True)
-                model.test()
-                val_pred += model.out.argmax(1).detach().cpu().numpy().tolist()
-                val_label += model.label.detach().cpu().numpy().tolist()
-            val_f1 = model.accuracy_function(val_label, val_pred)
-            model.is_train = True
+        for test_data in test_loader:
+
+            model.is_train = False
+            model.feed_data(test_data, need_label=True)
+            model.test()
+            val_pred += model.out.argmax(1).detach().cpu().numpy().tolist()
+            val_label += model.label.detach().cpu().numpy().tolist()
+        val_f1 = model.accuracy_function(val_label, val_pred)
+        model.is_train = True
 
         # -------------------------------
         # 6) save model

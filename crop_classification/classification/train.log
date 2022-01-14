@@ -1,0 +1,532 @@
+22-01-14 20:59:28.081 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 8
+      phase: train
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:02:55.867 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 8
+      phase: train
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:03:57.165 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 8
+      phase: train
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:10:26.523 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 8
+      phase: train
+      n_channels: 3
+    ]
+    val:[
+      name: val_dataset
+      dataroot: data/train/val
+      phase: val
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:13:29.763 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 16
+      phase: train
+      n_channels: 3
+    ]
+    val:[
+      name: val_dataset
+      dataroot: data/train/val
+      phase: val
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:18:39.025 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 16
+      phase: train
+      n_channels: 3
+    ]
+    val:[
+      name: val_dataset
+      dataroot: data/train/val
+      phase: val
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:22:04.408 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 16
+      phase: train
+      n_channels: 3
+    ]
+    val:[
+      name: val_dataset
+      dataroot: data/train/val
+      phase: val
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:24:40.372 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 16
+      phase: train
+      n_channels: 3
+    ]
+    val:[
+      name: val_dataset
+      dataroot: data/train/val
+      phase: val
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:29:24.580 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 16
+      phase: train
+      n_channels: 3
+    ]
+    val:[
+      name: val_dataset
+      dataroot: data/train/val
+      phase: val
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+
+22-01-14 21:31:20.167 :   task: classification
+  gpu_ids: [0]
+  n_channels: 3
+  datasets:[
+    train:[
+      name: train_dataset
+      dataroot: data/train/train
+      dataloader_shuffle: True
+      dataloader_num_workers: 8
+      dataloader_batch_size: 16
+      phase: train
+      n_channels: 3
+    ]
+    val:[
+      name: val_dataset
+      dataroot: data/train/val
+      phase: val
+      n_channels: 3
+    ]
+  ]
+  path:[
+    root: crop_classification
+    pretrained_net: None
+    task: crop_classification\classification
+    log: crop_classification\classification
+    options: crop_classification\classification\options
+    models: crop_classification\classification\models
+    images: crop_classification\classification\images
+    strict_net: True
+    pretrained_optimizer: None
+  ]
+  net:[
+    net_type: resnet_lstm
+    max_len: 144
+    embedding_dim: 512
+    num_features: 9
+    class_n: 111
+    dropout_rate: 0.1
+  ]
+  train:[
+    lossfn_type: CrossEntropy
+    lossfn_weight: 1
+    scheduler_type: MultiStepLR
+    scheduler_milestones: [1000000]
+    scheduler_gamma: 0.5
+    optimizer_type: adam
+    optimizer_lr: 0.0001
+    optimizer_reuse: False
+  ]
+  opt_path: options/train_resnet_lstm.yaml
+  is_train: True
+  num_gpu: 1
+  amp: True
+  resume: True
+

@@ -1,17 +1,17 @@
-  task : classification
+  task : resnet_lstm
   gpu_ids : [0]
   n_channels : 3
 
   datasets:
     train:
       name: train_dataset
-      dataroot: sample/sample_data
+      dataroot: data/train/train
       dataloader_shuffle: true
-      dataloader_num_workers: 2
-      dataloader_batch_size: 2
-    test:
-      name: test_dataset
-      dataroot: sample/sample_data
+      dataloader_num_workers: 8
+      dataloader_batch_size: 16
+    val:
+      name: val_dataset
+      dataroot: data/train/val
 
   path:
     root: crop_classification
@@ -22,7 +22,7 @@
     max_len : 144         #24*6  24hour * (10 per minutes = 6)
     embedding_dim : 512
     num_features : 9    # len(csv_feature_dict)
-    class_n : 32          # len(label)
+    class_n : 111          # len(label)
     dropout_rate : 0.1
 
 #    init_type: trunc_normal # "orthogonal" | "normal" | "uniform" | "xavier_normal" | "xavier_uniform" | "kaiming_normal" | "kaiming_uniform"
@@ -39,7 +39,3 @@
 
     optimizer_type: adam
     optimizer_lr: !!float 1e-4
-
-    checkpoint_test: 10
-    checkpoint_save: 10
-    checkpoint_print: 1

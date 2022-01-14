@@ -130,8 +130,6 @@ class ModelPlain():
         self.out = self.net(self.img, self.csv_feature)
 
     def accuracy_function(self, real, pred):
-        real = real.cpu()
-        pred = torch.argmax(pred, dim=1).cpu()
         score = f1_score(real, pred, average='macro')
         return score
 
@@ -169,8 +167,6 @@ class ModelPlain():
         if self.opt_train['lossfn_weight'] > 0:
             self.log_dict['loss'] = loss.item()
 
-
-        self.log_dict['score'] = self.accuracy_function(self.label, self.out)
 
     # ----------------------------------------
     # save model / optimizer(optional)
