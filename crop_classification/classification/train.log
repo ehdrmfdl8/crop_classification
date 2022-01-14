@@ -530,3 +530,16 @@
   amp: True
   resume: True
 
+22-01-14 21:33:38.725 : Saving the model.
+22-01-14 21:33:38.941 : epoch: 1/1000 train loss : 0.89189  f1:0.22632  valid f1:0.86909  best f1:0.86909
+22-01-14 21:34:57.000 : Saving the model.
+22-01-14 21:34:57.181 : epoch: 2/1000 train loss : 0.45892  f1:0.37963  valid f1:0.94335  best f1:0.94335
+22-01-14 21:36:15.082 : Saving the model.
+22-01-14 21:36:15.268 : epoch: 3/1000 train loss : 0.38985  f1:0.35375  valid f1:0.95654  best f1:0.95654
+22-01-14 21:37:36.284 : epoch: 4/1000 train loss : 0.35012  f1:0.34955  valid f1:0.92770  best f1:0.95654
+22-01-14 21:38:55.740 : epoch: 5/1000 train loss : 0.34376  f1:0.40072  valid f1:0.91796  best f1:0.95654
+22-01-14 21:40:16.504 : Saving the model.
+22-01-14 21:40:16.696 : epoch: 6/1000 train loss : 0.34372  f1:0.37843  valid f1:0.97989  best f1:0.97989
+22-01-14 21:41:38.654 : Saving the model.
+22-01-14 21:41:38.867 : epoch: 7/1000 train loss : 0.32470  f1:0.37896  valid f1:0.99513  best f1:0.99513
+22-01-14 21:42:59.838 : epoch: 8/1000 train loss : 0.29574  f1:0.38358  valid f1:0.98890  best f1:0.99513

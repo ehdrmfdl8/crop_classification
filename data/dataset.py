@@ -70,7 +70,7 @@ class Dataset(data.Dataset):
         super(Dataset, self).__init__()
         print('Get crop image.')
         self.opt = opt
-        self.n_channels = opt['n_channels'] if opt['n_channels'] else 3
+        self.n_channels = 3
         ## Data Augmentation 필요시 적용 (추가예정)
 
         self.paths = util_image.get_data_paths(opt['dataroot'])
@@ -84,7 +84,6 @@ class Dataset(data.Dataset):
         self.label_encoder, self.label_decoder = define_Label(crop, disease, risk)
 
     def __getitem__(self, index):
-
 
         path = self.paths[index]
         file_name = path.split('/')[-1]

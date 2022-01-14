@@ -70,7 +70,6 @@ def parse(opt_path, is_train=True):
     for phase, dataset in opt['datasets'].items():
         phase = phase.split('_')[0] # train or test
         dataset['phase'] = phase
-        dataset['n_channels'] = opt['n_channels']  # broadcast
         if 'dataroot' in dataset and dataset['dataroot'] is not None:
             dataset['dataroot'] = os.path.expanduser(dataset['dataroot'])
 
