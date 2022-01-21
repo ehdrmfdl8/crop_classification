@@ -5,6 +5,8 @@ import numpy as np
 from torchvision import models
 import torch.nn.functional as F
 from torchvision.ops import nms
+from models.roialign.roi_align.crop_and_resize import CropAndResizeFunction
+from torch.autograd import Variable
 
 class SamePad2d(nn.Module):
     """Mimics tensorflow's 'SAME' padding.
@@ -307,6 +309,12 @@ def generate_pyramid_anchors(scales, ratios, feature_shapes, feature_strides,
 ############################################################
 #  ROIAlign Layer
 ############################################################
+def log2(x):
+    """Implementatin of Log2. Pytorch doesn't have a native implemenation."""
+    ln2 = Variable(torch.log(torch.FloatTensor([2.0])), requires_grad=False)
+    if x.is_cuda:
+        ln2 = ln2.cuda()
+    return torch.log(x) / ln2
 
 def pyramid_roi_align(inputs, pool_size, image_shape):
     """Implements ROI Pooling on multiple levels of the feature pyramid.
@@ -439,7 +447,46 @@ class Classifier(nn.Module):
 
         return [mrcnn_class_logits, mrcnn_probs, mrcnn_bbox]
 
-def proposal_layer(inputs, proposal_count, nms_threshold, anchors): #, config=None):
+############################################################
+#  Proposal Layer
+############################################################
+
+def apply_box_deltas(boxes, deltas):
+    """Applies the given deltas to the given boxes.
+    boxes: [N, 4] where each row is y1, x1, y2, x2
+    deltas: [N, 4] where each row is [dy, dx, log(dh), log(dw)]
+    """
+    # Convert to y, x, h, w
+    height = boxes[:, 2] - boxes[:, 0]
+    width = boxes[:, 3] - boxes[:, 1]
+    center_y = boxes[:, 0] + 0.5 * height
+    center_x = boxes[:, 1] + 0.5 * width
+    # Apply deltas
+    center_y += deltas[:, 0] * height
+    center_x += deltas[:, 1] * width
+    height *= torch.exp(deltas[:, 2])
+    width *= torch.exp(deltas[:, 3])
+    # Convert back to y1, x1, y2, x2
+    y1 = center_y - 0.5 * height
+    x1 = center_x - 0.5 * width
+    y2 = y1 + height
+    x2 = x1 + width
+    result = torch.stack([y1, x1, y2, x2], dim=1)
+    return result
+
+def clip_boxes(boxes, window):
+    """
+    boxes: [N, 4] each col is y1, x1, y2, x2
+    window: [4] in the form y1, x1, y2, x2
+    """
+    boxes = torch.stack( \
+        [boxes[:, 0].clamp(float(window[0]), float(window[2])),
+         boxes[:, 1].clamp(float(window[1]), float(window[3])),
+         boxes[:, 2].clamp(float(window[0]), float(window[2])),
+         boxes[:, 3].clamp(float(window[1]), float(window[3]))], 1)
+    return boxes
+
+def proposal_layer(inputs, proposal_count, nms_threshold, anchors, image_shape):
     """Receives anchor scores and selects a subset to pass as proposals
     to the second stage. Filtering is done based on anchor scores and
     non-max suppression to remove overlaps. It also applies bounding
@@ -458,10 +505,16 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors): #, config=No
 
     # Box Scores. Use the foreground class confidence. [Batch, num_rois, 1]
     scores, class_order = inputs[0].sort(descending=True)
-    scores = scores[:,1]
-    """조건문 추가 if class_order == 0 이면 제외 """
+    scores = scores[:,0] # grid cell 내에 가장 높은 확률을 가진 클래스값
+    class_order = class_order[:,0]
+    """ 줄일수 있는 방법??"""
+    for i in range(len(scores)):
+        if class_order[i] == 0:
+            scores[i] = 0
+
+
     # Box deltas [batch, num_rois, 4]
-    deltas = inputs[1]
+    deltas = inputs[1] # pred_bbox in features
     RPN_BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
     std_dev = torch.from_numpy(np.reshape(RPN_BBOX_STD_DEV, [1, 4])).float()
 
@@ -481,7 +534,7 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors): #, config=No
     boxes = apply_box_deltas(anchors, deltas)
 
     # Clip to image boundaries. [batch, N, (y1, x1, y2, x2)]
-    height, width = config.IMAGE_SHAPE[:2]
+    height, width = image_shape[:2]
     window = np.array([0, 0, height, width]).astype(np.float32)
     boxes = clip_boxes(boxes, window)
 
@@ -490,7 +543,8 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors): #, config=No
     # for small objects, so we're skipping it.
 
     # Non-max suppression
-    keep = nms(torch.cat((boxes, scores.unsqueeze(1)), 1).data, nms_threshold)
+    #keep = nms(torch.cat((boxes, scores.unsqueeze(1)), 1).data, nms_threshold)
+    keep = nms(boxes, scores, nms_threshold) # nms를 통해 걸러진 index 반환
     keep = keep[:proposal_count]
     boxes = boxes[keep, :]
 
@@ -502,6 +556,187 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors): #, config=No
     normalized_boxes = normalized_boxes.unsqueeze(0)
 
     return normalized_boxes
+
+def detection_target_layer(proposals, gt_class_ids, gt_boxes, gt_masks, config):
+    """Subsamples proposals and generates target box refinment, class_ids,
+    and masks for each.
+
+    Inputs:
+    proposals: [batch, N, (y1, x1, y2, x2)] in normalized coordinates. Might
+               be zero padded if there are not enough proposals.
+    gt_class_ids: [batch, MAX_GT_INSTANCES] Integer class IDs.
+    gt_boxes: [batch, MAX_GT_INSTANCES, (y1, x1, y2, x2)] in normalized
+              coordinates.
+    gt_masks: [batch, height, width, MAX_GT_INSTANCES] of boolean type
+
+    Returns: Target ROIs and corresponding class IDs, bounding box shifts,
+    and masks.
+    rois: [batch, TRAIN_ROIS_PER_IMAGE, (y1, x1, y2, x2)] in normalized
+          coordinates
+    target_class_ids: [batch, TRAIN_ROIS_PER_IMAGE]. Integer class IDs.
+    target_deltas: [batch, TRAIN_ROIS_PER_IMAGE, NUM_CLASSES,
+                    (dy, dx, log(dh), log(dw), class_id)]
+                   Class-specific bbox refinments.
+    target_mask: [batch, TRAIN_ROIS_PER_IMAGE, height, width)
+                 Masks cropped to bbox boundaries and resized to neural
+                 network output size.
+    """
+
+    # Currently only supports batchsize 1
+    proposals = proposals.squeeze(0)
+    gt_class_ids = gt_class_ids.squeeze(0)
+    gt_boxes = gt_boxes.squeeze(0)
+    gt_masks = gt_masks.squeeze(0)
+
+    # Handle COCO crowds
+    # A crowd box in COCO is a bounding box around several instances. Exclude
+    # them from training. A crowd box is given a negative class ID.
+    if torch.nonzero(gt_class_ids < 0).size():
+        crowd_ix = torch.nonzero(gt_class_ids < 0)[:, 0]
+        non_crowd_ix = torch.nonzero(gt_class_ids > 0)[:, 0]
+        crowd_boxes = gt_boxes[crowd_ix.data, :]
+        crowd_masks = gt_masks[crowd_ix.data, :, :]
+        gt_class_ids = gt_class_ids[non_crowd_ix.data]
+        gt_boxes = gt_boxes[non_crowd_ix.data, :]
+        gt_masks = gt_masks[non_crowd_ix.data, :]
+
+        # Compute overlaps with crowd boxes [anchors, crowds]
+        crowd_overlaps = bbox_overlaps(proposals, crowd_boxes)
+        crowd_iou_max = torch.max(crowd_overlaps, dim=1)[0]
+        no_crowd_bool = crowd_iou_max < 0.001
+    else:
+        no_crowd_bool =  Variable(torch.ByteTensor(proposals.size()[0]*[True]), requires_grad=False)
+        if config.GPU_COUNT:
+            no_crowd_bool = no_crowd_bool.cuda()
+
+    # Compute overlaps matrix [proposals, gt_boxes]
+    overlaps = bbox_overlaps(proposals, gt_boxes)
+
+    # Determine postive and negative ROIs
+    roi_iou_max = torch.max(overlaps, dim=1)[0]
+
+    # 1. Positive ROIs are those with >= 0.5 IoU with a GT box
+    positive_roi_bool = roi_iou_max >= 0.5
+
+    # Subsample ROIs. Aim for 33% positive
+    # Positive ROIs
+    if torch.nonzero(positive_roi_bool).size():
+        positive_indices = torch.nonzero(positive_roi_bool)[:, 0]
+
+        positive_count = int(config.TRAIN_ROIS_PER_IMAGE *
+                             config.ROI_POSITIVE_RATIO)
+        rand_idx = torch.randperm(positive_indices.size()[0])
+        rand_idx = rand_idx[:positive_count]
+        if config.GPU_COUNT:
+            rand_idx = rand_idx.cuda()
+        positive_indices = positive_indices[rand_idx]
+        positive_count = positive_indices.size()[0]
+        positive_rois = proposals[positive_indices.data,:]
+
+        # Assign positive ROIs to GT boxes.
+        positive_overlaps = overlaps[positive_indices.data,:]
+        roi_gt_box_assignment = torch.max(positive_overlaps, dim=1)[1]
+        roi_gt_boxes = gt_boxes[roi_gt_box_assignment.data,:]
+        roi_gt_class_ids = gt_class_ids[roi_gt_box_assignment.data]
+
+        # Compute bbox refinement for positive ROIs
+        deltas = Variable(utils.box_refinement(positive_rois.data, roi_gt_boxes.data), requires_grad=False)
+        std_dev = Variable(torch.from_numpy(config.BBOX_STD_DEV).float(), requires_grad=False)
+        if config.GPU_COUNT:
+            std_dev = std_dev.cuda()
+        deltas /= std_dev
+
+        # Assign positive ROIs to GT masks
+        roi_masks = gt_masks[roi_gt_box_assignment.data,:,:]
+
+        # Compute mask targets
+        boxes = positive_rois
+        if config.USE_MINI_MASK:
+            # Transform ROI corrdinates from normalized image space
+            # to normalized mini-mask space.
+            y1, x1, y2, x2 = positive_rois.chunk(4, dim=1)
+            gt_y1, gt_x1, gt_y2, gt_x2 = roi_gt_boxes.chunk(4, dim=1)
+            gt_h = gt_y2 - gt_y1
+            gt_w = gt_x2 - gt_x1
+            y1 = (y1 - gt_y1) / gt_h
+            x1 = (x1 - gt_x1) / gt_w
+            y2 = (y2 - gt_y1) / gt_h
+            x2 = (x2 - gt_x1) / gt_w
+            boxes = torch.cat([y1, x1, y2, x2], dim=1)
+        box_ids = Variable(torch.arange(roi_masks.size()[0]), requires_grad=False).int()
+        if config.GPU_COUNT:
+            box_ids = box_ids.cuda()
+        masks = Variable(CropAndResizeFunction(config.MASK_SHAPE[0], config.MASK_SHAPE[1], 0)(roi_masks.unsqueeze(1), boxes, box_ids).data, requires_grad=False)
+        masks = masks.squeeze(1)
+
+        # Threshold mask pixels at 0.5 to have GT masks be 0 or 1 to use with
+        # binary cross entropy loss.
+        masks = torch.round(masks)
+    else:
+        positive_count = 0
+
+    # 2. Negative ROIs are those with < 0.5 with every GT box. Skip crowds.
+    negative_roi_bool = roi_iou_max < 0.5
+    negative_roi_bool = negative_roi_bool & no_crowd_bool
+    # Negative ROIs. Add enough to maintain positive:negative ratio.
+    if torch.nonzero(negative_roi_bool).size() and positive_count>0:
+        negative_indices = torch.nonzero(negative_roi_bool)[:, 0]
+        r = 1.0 / config.ROI_POSITIVE_RATIO
+        negative_count = int(r * positive_count - positive_count)
+        rand_idx = torch.randperm(negative_indices.size()[0])
+        rand_idx = rand_idx[:negative_count]
+        if config.GPU_COUNT:
+            rand_idx = rand_idx.cuda()
+        negative_indices = negative_indices[rand_idx]
+        negative_count = negative_indices.size()[0]
+        negative_rois = proposals[negative_indices.data, :]
+    else:
+        negative_count = 0
+
+    # Append negative ROIs and pad bbox deltas and masks that
+    # are not used for negative ROIs with zeros.
+    if positive_count > 0 and negative_count > 0:
+        rois = torch.cat((positive_rois, negative_rois), dim=0)
+        zeros = Variable(torch.zeros(negative_count), requires_grad=False).int()
+        if config.GPU_COUNT:
+            zeros = zeros.cuda()
+        roi_gt_class_ids = torch.cat([roi_gt_class_ids, zeros], dim=0)
+        zeros = Variable(torch.zeros(negative_count,4), requires_grad=False)
+        if config.GPU_COUNT:
+            zeros = zeros.cuda()
+        deltas = torch.cat([deltas, zeros], dim=0)
+        zeros = Variable(torch.zeros(negative_count,config.MASK_SHAPE[0],config.MASK_SHAPE[1]), requires_grad=False)
+        if config.GPU_COUNT:
+            zeros = zeros.cuda()
+        masks = torch.cat([masks, zeros], dim=0)
+    elif positive_count > 0:
+        rois = positive_rois
+    elif negative_count > 0:
+        rois = negative_rois
+        zeros = Variable(torch.zeros(negative_count), requires_grad=False)
+        if config.GPU_COUNT:
+            zeros = zeros.cuda()
+        roi_gt_class_ids = zeros
+        zeros = Variable(torch.zeros(negative_count,4), requires_grad=False).int()
+        if config.GPU_COUNT:
+            zeros = zeros.cuda()
+        deltas = zeros
+        zeros = Variable(torch.zeros(negative_count,config.MASK_SHAPE[0],config.MASK_SHAPE[1]), requires_grad=False)
+        if config.GPU_COUNT:
+            zeros = zeros.cuda()
+        masks = zeros
+    else:
+        rois = Variable(torch.FloatTensor(), requires_grad=False)
+        roi_gt_class_ids = Variable(torch.IntTensor(), requires_grad=False)
+        deltas = Variable(torch.FloatTensor(), requires_grad=False)
+        masks = Variable(torch.FloatTensor(), requires_grad=False)
+        if config.GPU_COUNT:
+            rois = rois.cuda()
+            roi_gt_class_ids = roi_gt_class_ids.cuda()
+            deltas = deltas.cuda()
+            masks = masks.cuda()
+
+    return rois, roi_gt_class_ids, deltas, masks
 
 class MaskRCNN(nn.Module):
     """Encapsulates the Mask RCNN model functionality.
@@ -517,21 +752,22 @@ class MaskRCNN(nn.Module):
         RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)
         RPN_ANCHOR_RATIOS = [0.5, 1, 2]
         BACKBONE_STRIDES = [4, 8, 16, 32, 64]
-
+        NUM_CLASSES = 20 + 1
         # Compute backbone size from input image size
-        IMAGE_SHAPE = np.array([256, 256, 3])
+        self.IMAGE_SHAPE = np.array([256, 256, 3])
         BACKBONE_SHAPES = np.array(
-            [[int(math.ceil(IMAGE_SHAPE[0] / stride)),
-              int(math.ceil(IMAGE_SHAPE[1] / stride))]
+            [[int(math.ceil(self.IMAGE_SHAPE[0] / stride)),
+              int(math.ceil(self.IMAGE_SHAPE[1] / stride))]
              for stride in BACKBONE_STRIDES])
         self.anchors = torch.from_numpy(generate_pyramid_anchors(RPN_ANCHOR_SCALES, RPN_ANCHOR_RATIOS,BACKBONE_SHAPES,
                                                                 BACKBONE_STRIDES, 1)).float()
         self.rpn = RPN(in_channels=256, anchors_per_location=len(RPN_ANCHOR_RATIOS), class_n=self.crop_area_class)
-        #self.classifier = Classifier(256, pool_size, IMAGE_SHAPE, NUM_CLASSES)
+        self.classifier = Classifier(256, 7, self.IMAGE_SHAPE, NUM_CLASSES)
 
-    def forward(self, x):
-        [p2, p3, p4, p5, p6] = self.fpn(x)
+    def forward(self, x, mode):
+        [p2, p3, p4, p5, p6] = self.fpn(x[0])
         rpn_feature_maps = [p2, p3, p4, p5, p6]
+        mrcnn_feature_maps = [p2, p3, p4, p5]
         layer_outputs = []
         for p in rpn_feature_maps:
             layer_outputs.append(self.rpn(p))
@@ -547,10 +783,16 @@ class MaskRCNN(nn.Module):
         rpn_rois = proposal_layer([rpn_class, rpn_bbox],
                                   proposal_count=proposal_count,
                                   nms_threshold=0.7,
-                                  anchors=self.anchors)
-                                  #config=self.config)
+                                  anchors=self.anchors,
+                                  image_shape=self.IMAGE_SHAPE)
 
-        return rpn_class_logits, rpn_class, rpn_bbox
+        if mode == 'training':
+            rois, target_class_ids, target_deltas, target_mask = detection_target_layer(rpn_rois, gt_class_ids, gt_boxes, gt_masks, self.config)
+            # Network Heads
+            # Proposal classifier and BBox regressor heads
+            mrcnn_class_logits, mrcnn_class, mrcnn_bbox = self.classifier(mrcnn_feature_maps, rois)
+
+            return [rpn_class_logits, rpn_bbox, mrcnn_class_logits, mrcnn_bbox]
 
 if __name__ == '__main__':
     model = MaskRCNN()
